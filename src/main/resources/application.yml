@@ -1,0 +1,10 @@
+server:
+  port: 8081
+
+mail:
+  external:
+    ip: 192.168.0.1
+
+featureswitch:
+  printIp: true
+  emailUp: true
