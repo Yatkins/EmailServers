@@ -7,12 +7,12 @@ import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
-@Builder
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Email {
+public class EmailReceiverString {
     private UUID from;
-    private UUID to;
+    private String to;
     private String message;
 }

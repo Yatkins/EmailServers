@@ -8,11 +8,7 @@ import org.springframework.context.annotation.Configuration;
 @RequiredArgsConstructor
 @Data
 @Configuration
-@ConfigurationProperties("mail.external")
-public class ExternalMailConfiguration {
-
-    //private String ip;
-    private String ur1;
-    private String key;
-
+@ConfigurationProperties("feature-switch.send-external-mail")
+public class FeatureSwitchSendExternalMailConfig {
+    private boolean sendExternalMail;
 }

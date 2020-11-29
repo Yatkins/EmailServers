@@ -1,10 +1,18 @@
 server:
-  port: 8081
+  port: 8080
 
 mail:
   external:
-    ip: 192.168.0.1
+    #ip: 192.168.0.1
+    url: ti-timeserver.herokuapp.com
+    key: letMeIn
 
 featureswitch:
   printIp: true
   emailUp: true
+
+#feature-switch:
+#  receive-external-mail:
+#    receive-external-mail-on: true
+#  send-external-mail:
+#    sen-external-mail-on: true

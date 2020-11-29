@@ -5,14 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
-@Builder
 @Data
-@AllArgsConstructor
+@Builder
 @NoArgsConstructor
-public class Email {
-    private UUID from;
-    private UUID to;
+@AllArgsConstructor
+public class ExternalEmail {
+    private String from;
+    private String to;
     private String message;
 }
