@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class ExternalMailConfiguration {
 
     //private String ip;
-    private String ur1;
+    private String url;
     private String key;
 
 }

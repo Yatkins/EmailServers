@@ -5,10 +5,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-@RequiredArgsConstructor
 @Data
+@RequiredArgsConstructor
 @Configuration
-@ConfigurationProperties("feature-switch.send-external-mail")
-public class FeatureSwitchSendExternalMailConfig {
-    private boolean sendExternalMailOn;
+@ConfigurationProperties("feature-switch.receive-external-mail")
+public class FeatureSwitchReceiveExternalMailConfig {
+    private boolean receiveExternalMailOn;
 }

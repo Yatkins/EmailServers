@@ -1,10 +1,13 @@
 package com.example.gmail.service;
 
+import com.example.gmail.config.ExternalMailConfiguration;
+import com.example.gmail.config.FeatureSwitchReceiveExternalMailConfig;
+import com.example.gmail.config.FeatureSwitchSendExternalMailConfig;
 import com.example.gmail.model.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
@@ -14,7 +17,12 @@ import java.util.*;
 public class MailService {
 
     private Users users = new Users();
+    private ExternalUsers externalUsers = new ExternalUsers();
     private final RestTemplate restTemplate;
+
+    private final FeatureSwitchSendExternalMailConfig featureSwitchSendExternalMailConfiguration;
+    private final FeatureSwitchReceiveExternalMailConfig receiveExternalMailConfiguration;
+    private final ExternalMailConfiguration externalMailConfiguration;
 
     public String loginToEmail(Login login)
     {
@@ -39,9 +47,8 @@ public class MailService {
         }return null;
     }
 
-
-    public String sendEmail(EmailReceiverString sendEmail){
-        if(getUUID(sendEmail.getTo()) != null){
+    public String sendEmail(EmailReceiverString sendEmail) {
+        if(getUUID(sendEmail.getTo()) != null && users.getUsers().containsKey(sendEmail.getFrom())){
             Email email = Email.builder()
                     .from(sendEmail.getFrom())
                     .to(getUUID(sendEmail.getTo()))
@@ -50,20 +57,57 @@ public class MailService {
             users.getUsers().get(getUUID(sendEmail.getTo())).updateInbox(email);
             users.getUsers().get(sendEmail.getFrom()).updateOutbox(email);
             return "Sent!";
-        }else{
-            return "Error";
+        } else {
+            if(!featureSwitchSendExternalMailConfiguration.isSendExternalMailOn()){
+                return "Error";
+            }else {
+                ExternalEmail externalEmail = ExternalEmail.builder()
+                        .from(users.getUsers().get(sendEmail.getFrom()).getUsername())
+                        .to(sendEmail.getTo())
+                        .message(sendEmail.getMessage())
+                        .build();
+                String headerValue = new String (Base64.getEncoder().encode(externalMailConfiguration.getKey().getBytes()));
+                HttpHeaders headers = new HttpHeaders();
+                headers.add("api-key", headerValue);
+                HttpEntity<ExternalEmail> httpEntity = new HttpEntity<>(externalEmail, headers);
+                try{
+                    ResponseEntity<Void> response = restTemplate.exchange(externalMailConfiguration.getUrl(), HttpMethod.POST, httpEntity, Void.class);
+                    return "sent externally";
+                }catch (RestClientException e){
+                    return "Error";
+                }
+            }
         }
     }
 
-    public ArrayList<Inbox> showInbox(UUID uuid){
-        ArrayList<Email> personsInbox = users.getUsers().get(uuid).getInbox();
+    public ArrayList<Inbox> showInbox(UUID uuid)
+    {
+        ArrayList<Email> emailInbox = users.getUsers().get(uuid).getInbox();
         ArrayList<Inbox> display = new ArrayList<>();
-        for (Email email : personsInbox) {
-            display.add(Inbox.builder()
-                    .from(users.getUsers().get(email.getFrom()).getUsername()) //login cant be converted to string...
-                    .message(email.getMessage())
-                    .build());
-        }return display;
+
+        for(Email email:emailInbox) {
+            if (ExternalUsers.externalUsers.containsValue(email.getFrom())) {
+                display.add(Inbox.builder()
+                        .from(getExternalUsername(email.getFrom()))
+                        .message(email.getMessage())
+                        .build());
+            } else {
+                display.add(Inbox.builder()
+                        .from(users.getUsers().get(email.getFrom()).getUsername())
+                        .message(email.getMessage())
+                        .build());
+            }
+        }
+        return display;
+    }
+
+    private String getExternalUsername(UUID externalUserUUID){
+            for(Map.Entry entry : ExternalUsers.externalUsers.entrySet()){
+                if (entry.getValue().equals(externalUserUUID))
+                {
+                    return entry.getKey().toString();
+                }
+            }return null;
     }
 
     public ArrayList<Outbox> showOutbox(UUID uuid){
@@ -80,22 +124,33 @@ public class MailService {
     }
 
 
-    public Object receiveExternalMail(ExternalEmail externalEmail)
-    {
-        if (getUUID(externalEmail.getTo()) != null){
-            Email email = Email.builder()
-                    .from(ExternalUsers
-                            .externalUsers
-                            .get(externalEmail.getFrom()))
-                    .to(getUUID(externalEmail.getTo()))
-                    .message(externalEmail.getMessage())
-                    .build();
+    public Object receiveExternalMail(ExternalEmail externalEmail, String key) {
+        String decodeHeader = new String(Base64.getDecoder().decode(key));
+        if(decodeHeader.equals(externalMailConfiguration.getKey())){
+            if (!receiveExternalMailConfiguration.isReceiveExternalMailOn()) {
+               return "Error, servers off";
+            }else {
+                if (getUUID(externalEmail.getTo()) != null) {
+                   if (!ExternalUsers.externalUsers.containsKey(externalEmail.getFrom())) {
+                    ExternalUsers.externalUsers.put(externalEmail.getFrom(), UUID.randomUUID());
+                    }
+                    Email email = Email.builder()
+                            .from(ExternalUsers
+                                    .externalUsers
+                                    .get(externalEmail.getFrom()))
+                            .to(getUUID(externalEmail.getTo()))
+                            .message(externalEmail.getMessage())
+                            .build();
 
-            users.getUsers().get(getUUID(externalEmail.getTo())).updateInbox(email);
+                    users.getUsers().get(getUUID(externalEmail.getTo())).updateInbox(email);
 
-            return new ResponseEntity<>("Yay", HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>("Error", HttpStatus.BAD_REQUEST);
+                    return "Yay, received mail externally";
+                } else {
+                    return "Error, couldn't receive mail externally";
+                }
+            }
+        }else{
+            return "Error, wrong key";
         }
     }
 }
