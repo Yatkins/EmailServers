@@ -5,6 +5,8 @@ import com.example.gmail.model.*;
 import com.example.gmail.service.MailService;
 import io.swagger.annotations.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 
@@ -25,21 +27,27 @@ public class MailController {
             response = String.class,
             examples = @Example(value = @ExampleProperty(mediaType = "UUID", value = "1234-1234-12345678"))
     ),
-            @ApiResponse(code = 401,
+            @ApiResponse(
+                    code = 401,
                     message = "Unauthorized",
                     response = String.class,
-                    examples = @Example(value = @ExampleProperty(value = "Error")))
+                    examples = @Example(value = @ExampleProperty(value = "Unable to Login"))),
+            @ApiResponse(
+                    code = 503,
+                    message = "Unavailable",
+                    response = String.class,
+                    examples = @Example(value = @ExampleProperty(value = "Server down"))),
 
     })
     @PostMapping("/login")
-    public Object login(@RequestBody Login login) {
+    public ResponseEntity login(@RequestBody Login login) {
         try{
             if(featureSwitchConfig.isEmailUp()){
-                return mailService.loginToEmail(login);
+                return new ResponseEntity(mailService.loginToEmail(login), HttpStatus.OK);
             }
-            return "Error";
+            return new ResponseEntity("Service Down", HttpStatus.SERVICE_UNAVAILABLE);
         }catch(HttpClientErrorException e){
-            return e.getMessage() + e.getStatusCode();
+            return new ResponseEntity<>(e.getMessage(), e.getStatusCode());
         }
     }
 
@@ -49,10 +57,16 @@ public class MailController {
             message = "OK",
             response = String.class,
             examples = @Example(value = @ExampleProperty(value = "email sent"))),
-            @ApiResponse(code = 401,
+            @ApiResponse(
+                    code = 503,
+                    message = "Unavailable",
+                    response = String.class,
+                    examples = @Example(value = @ExampleProperty(value = "Server down"))),
+            @ApiResponse(
+                    code = 401,
                     message = "Unauthorized",
                     response = String.class,
-                    examples = @Example(value = @ExampleProperty(value = "Error"))),
+                    examples = @Example(value = @ExampleProperty(value = "User doesnt exist"))),
             })
     @PostMapping("/send")
     public String send(@RequestBody EmailReceiverString emailReceiverString){
@@ -64,11 +78,7 @@ public class MailController {
             code = 200,
             message = "OK",
             response = ArrayList.class,
-            examples = @Example(value = @ExampleProperty(value = "From: x, Message: y"))),
-            @ApiResponse(code = 401,
-                    message = "Unauthorized",
-                    response = String.class,
-                    examples = @Example(value = @ExampleProperty(value = "Error"))),
+            examples = @Example(value = @ExampleProperty(value = "Inbox array"))),
     })
     @PostMapping("/inbox")
     public ArrayList<Inbox> showInbox(@RequestBody GetUUID uuid) {
@@ -80,12 +90,7 @@ public class MailController {
             code = 200,
             message = "OK",
             response = ArrayList.class,
-            examples = @Example(value = @ExampleProperty(value = "From: x, Message: y"))),
-    @ApiResponse(
-            code = 401,
-            message = "Unauthorized",
-            response = String.class,
-            examples = @Example(value = @ExampleProperty(value = "Error"))),
+            examples = @Example(value = @ExampleProperty(value = "Outbox array"))),
     })
     @PostMapping("/outbox")
     public ArrayList<Outbox> showOutbox(@RequestBody GetUUID uuid) {
@@ -98,17 +103,20 @@ public class MailController {
             message = "OK",
             response = String.class,
             examples = @Example(value = @ExampleProperty(value = "Mail Received"))),
-            @ApiResponse(code = 401,
+            @ApiResponse(
+                    code = 401,
                     message = "Unauthorized",
                     response = String.class,
-                    examples = @Example(value = @ExampleProperty(value = "Error."))),
-           })
+                    examples = @Example(value = @ExampleProperty(value = "Wrong api-key."))),
+            @ApiResponse(
+                    code = 503,
+                    message = "Unavailable",
+                    response = String.class,
+                    examples = @Example(value = @ExampleProperty(value = "Server down."))),
+            })
     @PostMapping("/receiveExternalMail")
     public Object receiveExternalMail(@RequestBody ExternalEmail externalEmail,
                                       @RequestHeader("api-key") String key) {
         return mailService.receiveExternalMail(externalEmail, key);
     }
-
-
-
 }

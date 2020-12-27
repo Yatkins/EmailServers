@@ -32,10 +32,10 @@ public class MailService {
             if(login.getPassword().equals(users.getUsers().get(userUUID).getPassword())) {
                 return  userUUID.toString();
             } else{
-                return "Error";
+                return "Username and Password do not match";
             }
         } else {
-            return "Error";
+            return "User doesnt exist";
         }
     }
 
@@ -59,7 +59,7 @@ public class MailService {
             return "Sent!";
         } else {
             if(!featureSwitchSendExternalMailConfiguration.isSendExternalMailOn()){
-                return "Error";
+                return "Server down";
             }else {
                 ExternalEmail externalEmail = ExternalEmail.builder()
                         .from(users.getUsers().get(sendEmail.getFrom()).getUsername())
@@ -74,7 +74,7 @@ public class MailService {
                     ResponseEntity<Void> response = restTemplate.exchange(externalMailConfiguration.getUrl(), HttpMethod.POST, httpEntity, Void.class);
                     return "sent externally";
                 }catch (RestClientException e){
-                    return "Error";
+                    return "Didnt go through";
                 }
             }
         }
@@ -150,7 +150,7 @@ public class MailService {
                 }
             }
         }else{
-            return "Error, wrong key";
+            return "Error, wrong api-key";
         }
     }
 }
