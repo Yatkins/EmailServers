@@ -1,6 +1,10 @@
 package com.example.gmail.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -9,10 +13,16 @@ import java.util.ArrayList;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
+@Builder
+@ApiModel()
 public class Login {
+    @ApiModelProperty
     private String username;
+    @ApiModelProperty()
     private String password;
+    @JsonIgnore
     private ArrayList<Email> inbox;
+    @JsonIgnore
     private ArrayList<Email> outbox;
 
     public Login(String username, String password) {
